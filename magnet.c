@@ -162,15 +162,17 @@ main(void)
 		lua_newtable(L);
 
 		/* we have to overwrite the print function */
-		lua_pushcfunction(L, magnet_print);                       /* (sp += 1) */
-		lua_setfield(L, -2, "print"); /* -1 is the env we want to set(sp -= 1) */
+		lua_pushcfunction(L, magnet_print);
+		lua_setfield(L, -2, "print");
 
-		lua_newtable(L); /* The meta-table for the new env.  */
+		lua_newtable(L);                    /* The meta-table for the new env.          */
 		lua_pushvalue(L, LUA_GLOBALSINDEX);
-		lua_setfield(L, -2, "__index"); /* { __index = _G }                         */
-		lua_setmetatable(L, -2);        /* setmetatable({}, { __index = _G })       */
-		lua_setfenv(L, -2);             /* On the stack should be the modified env. */
 
+		lua_setfield(L,     -2, "__index"); /* { __index = _G }                         */
+		lua_setmetatable(L, -2);            /* setmetatable({}, { __index = _G })       */
+		lua_setfenv(L,      -2);            /* On the stack should be the modified env. */
+
+		/* The top of the stack is the function from magnet_get_script() again. */
 		if (lua_pcall(L, 0, 1, 0))
 		{
 			/* Unsure about this. */
