@@ -1,0 +1,68 @@
+Compile with: gcc -Wall -O2 -g -o magnet magnet.c -lfcgi -llua -lm -ldl
+
+Associate the .lua extension with the `magnet` fastcgi launcher in your web server.
+
+Features (so far)
+-----------------
+
+	- Caches scripts under _G.magnet.cache['<script>']
+	- Keeps track of how many hits each script gets (_G.magnet.cache['<script'].hits)
+	- Also exports the mtime for each script (which it uses to re-cache automagically if it has been altered)
+
+	>> I take no credit for these.
+
+Tip
+---
+
+You can check out the interesting CGI environment variables with os.getenv('REQUEST_URI') or os.getenv('QUERY_STRING'), etc... it's just up to you to parse said query string.  I've already done something in pure Lua which you can view at http://partyvan.us/bleh.lua, the source is icky and found under http://partyvan.us/sources/cgi-env.lua
+
+List of CGI Environment Variables
+---------------------------------
+
+	- 'AUTH_TYPE'
+	- 'CONTENT_LENGTH'
+	- 'CONTENT_TYPE'
+	- 'DOCUMENT_ROOT'
+	- 'GATEWAY_INTERFACE'
+	- 'HTTP_ACCEPT'
+	- 'HTTP_COOKIE'
+	- 'HTTP_HOST'
+	- 'HTTP_REFERRER'
+	- 'HTTP_USER_AGENT'
+	- 'HTTPS'
+	- 'PATH'
+	- 'PATH_INFO'
+	- 'PATH_TRANSLATED'
+	- 'QUERY_STRING',
+	- 'REMOTE_ADDR'
+	- 'REMOTE_HOST'
+	- 'REMOTE_IDENT'
+	- 'REMOTE_USER'
+	- 'REQUEST_METHOD'
+	- 'REQUEST_URI'
+	- 'SCRIPT_NAME'
+	- 'SCRIPT_FILENAME'
+	- 'SERVER_ADMIN'
+	- 'SERVER_NAME'
+	- 'SERVER_PORT'
+	- 'SERVER_PROTOCOL',
+	- 'SERVER_SIGNATURE'
+	- 'SERVER_SOFTWARE'
+
+	- Note: Please let me know if there is some standard for all
+	that exist, I have checked the original CGI site, but I keep
+	finding more standard-yet-non-standard conventional CGI vars
+	exported by my webserver.  Just curious what is common.
+
+Roadmap
+-------
+
+	DO WANT:
+		- Export all the CGI environment variables under magnet.env
+			- Find out the standard for parsing the QUERY_STRING if it is defined. -.-
+				- I believe ; or & is the (conventional?) record separator... need more info.
+		- Expose some number showing the total FastCGI requests handled. (easy)
+
+	Low Priority: (luaFilesystem works spendidly for now)
+		- Add a function for listing a directory which returns a table *cough*array*cough* of the contents.
+		- Add a function for stat()'ing a file.  Return the usual struct as a table.
