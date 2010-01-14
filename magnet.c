@@ -12,12 +12,23 @@
 static int
 magnet_print(lua_State *L)
 {
-	while (lua_gettop(L) > 0)
+	size_t nargs = lua_gettop(L);
+	if (nargs > 0)
 	{
-		size_t str_length;
-		char *s = (char *) luaL_checklstring(L, 1, &str_length);
-		fwrite(s, 1, str_length, stdout); /* sizeof(char) is always 1       */
-		lua_remove(L, 1);
+		char *s;
+		size_t s_len;
+
+		while (nargs != 0)
+		{
+			s = (char *) luaL_checklstring(L, 1, &s_len);
+
+			/* sizeof(char) is always 1 */
+			fwrite(s, 1, s_len, stdout);
+			
+			/* Remove string from bottom of stack. */
+			lua_remove(L, 1);
+			nargs--;
+		}
 	}
 	return EXIT_SUCCESS;
 }
