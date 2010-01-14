@@ -1,3 +1,4 @@
+/* Compile: gcc -Wall -O2 -g -o magnet magnet.c -lfcgi -llua -lm -ldl */
 #include <sys/stat.h>
 
 #include <lualib.h>
@@ -11,8 +12,13 @@
 static int
 magnet_print(lua_State *L)
 {
-	const char *s = luaL_checkstring(L, 1);
-	fputs(s, stdout);
+	while (lua_gettop(L) > 0)
+	{
+		size_t str_length;
+		char *s = (char *) luaL_checklstring(L, 1, &str_length);
+		fwrite(s, 1, str_length, stdout); /* sizeof(char) is always 1       */
+		lua_remove(L, 1);
+	}
 	return EXIT_SUCCESS;
 }
 
@@ -161,7 +167,7 @@ main(void)
 		/* Empty environment; will become parent to _G._G */
 		lua_newtable(L);
 
-		/* we have to overwrite the print function */
+		/* We have to overwrite the print function */
 		lua_pushcfunction(L, magnet_print);
 		lua_setfield(L, -2, "print");
 
