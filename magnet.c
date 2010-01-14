@@ -1,4 +1,4 @@
-/* Compile: gcc -Wall -O2 -g -o magnet magnet.c -lfcgi -llua -lm -ldl */
+/* Compile: gcc -Wall -O2 -g -o magnet magnet.c -lfcgi -llua -lm -ldl -pedantic -ansi -std=c99 */
 #include <sys/stat.h>
 
 #include <lualib.h>

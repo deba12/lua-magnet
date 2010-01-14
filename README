@@ -1,4 +1,4 @@
-Compile with: gcc -Wall -O2 -g -o magnet magnet.c -lfcgi -llua -lm -ldl
+Compile with: gcc -Wall -O2 -g -o magnet magnet.c -lfcgi -llua -lm -ldl -pedantic -ansi -std=c99
 
 Associate the .lua extension with the `magnet` fastcgi launcher in your web server.
 
