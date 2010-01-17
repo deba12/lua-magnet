@@ -1,36 +1,49 @@
 /* Compile: gcc -Wall -O2 -g -o magnet magnet.c -lfcgi -llua -lm -ldl -pedantic -ansi -std=c99 */
-#include <sys/stat.h>
 
-#include <lualib.h>
+#include <sys/stat.h>    /* stat()                            */
+#include <assert.h>      /* assert() -- *duh*                 */
+#include <stdio.h>       /* fwrite(), fprintf(), fputs(), ... */
+#include <stdlib.h>      /* EXIT_SUCCESS, EXIT_FAILURE        */
+#include <fcgi_stdio.h>  /* FCGI_Accept()                     */
+#include <lualib.h>      /* LUA'Y STUFF :D-S-<                */
 #include <lauxlib.h>
-
-#include <assert.h>
-#include <stdio.h>
-#include <fcgi_stdio.h>
-#include <stdlib.h>
 
 static int
 magnet_print(lua_State *L)
 {
-	size_t nargs = lua_gettop(L);
-	if (nargs > 0)
+	const size_t nargs = lua_gettop(L);
+	if (nargs)
 	{
 		char *s;
-		size_t s_len;
+		size_t i, s_len;
 
-		while (nargs != 0)
+		lua_getglobal(L, "tostring");
+		assert(lua_isfunction(L, -1));
+
+		for (i = 1; i <= nargs; i++)
 		{
-			s = (char *) luaL_checklstring(L, 1, &s_len);
-
-			/* sizeof(char) is always 1 */
-			fwrite(s, 1, s_len, stdout);
+			lua_pushvalue(L, -1);                      /* Push tostring() */
+			lua_pushvalue(L,  i);                      /* Push argument   */
+			lua_call(L, 1, 1);                         /* tostring(1), take 1, return 1 */
+			s = (char *) lua_tolstring(L, -1, &s_len); /* Fetch result. */
 			
-			/* Remove string from bottom of stack. */
-			lua_remove(L, 1);
-			nargs--;
+			if (s == NULL)
+				return luaL_error(L, LUA_QL("tostring") " must return a string to " LUA_QL("print"));
+
+			fwrite(s, 1, s_len, stdout);
+
+			/* It might be more efficient to not pop
+			** the converted string, since we do this
+			** to reference the gotten global tostring()
+			** by -1, and instead pushvalue(nargs + 1) */
+			lua_pop(L, 1);
 		}
 	}
-	return EXIT_SUCCESS;
+	/* This function gets exposed as print(...),
+	** it must return 0 not EXIT_SUCCESS.
+	** It returns nothing (0), everything still
+	** on the stack is popped off and lost. */
+	return 0;
 }
 
 static int

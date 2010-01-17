@@ -11,6 +11,10 @@ Features (so far)
 
 	>> I take no credit for these.
 
+	- print(...) has been overridden to allow for printing
+	  Lua strings with embedded zeros and to do without the
+	  \t and \n if more than one argument is supplied
+
 Tip
 ---
 
