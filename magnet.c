@@ -46,7 +46,7 @@ magnet_cache_script(lua_State * const L, const char * const fn, const time_t mti
 	if (luaL_loadfile(L, fn))
 	{
 		fprintf(stderr, "%s\n", lua_tostring(L, -1));
-		lua_pop(L, 1);       Pop error message
+		lua_pop(L, 1); /*  Pop error message */
 		return EXIT_FAILURE;
 	}
 
