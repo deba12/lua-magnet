@@ -9,66 +9,85 @@
 #include <lauxlib.h>
 
 static int
-magnet_print(lua_State * const L)
+magnet_print(lua_State *L)
 {
 	const size_t nargs = lua_gettop(L);
 	if (nargs)
 	{
-		const char *s;
+		char *s;
 		size_t i, s_len;
 
 		lua_getglobal(L, "tostring");
 		assert(lua_isfunction(L, -1));
 
-		/* We call the Lua tostring() so it may invoke __tostring */
 		for (i = 1; i <= nargs; i++)
 		{
-			lua_pushvalue    (L, -1        );          /* Push tostring()                                             */
-			lua_pushvalue    (L,  i        );          /* Push <argument>                                             */
-			lua_call         (L,  1,      1);          /* Pushes tostring(<argument>), pops tostring() and <argument> */
-			s = lua_tolstring(L, -1, &s_len);          /* const char *s = <string>                                    */
-			if (s == NULL)                             /* Something went wrong returning a pointer to <string>, error */
+			lua_pushvalue(L, -1);                      /* Push tostring() */
+			lua_pushvalue(L,  i);                      /* Push argument   */
+			lua_call(L, 1, 1);                         /* tostring(1), take 1, return 1 */
+			s = (char *) lua_tolstring(L, -1, &s_len); /* Fetch result. */
+			
+			if (s == NULL)
 				return luaL_error(L, LUA_QL("tostring") " must return a string to " LUA_QL("print"));
-			fwrite((char *) s, 1, s_len, stdout);      /* Write the string we worked so hard for. >.<                 */
-			lua_pop(L, 1);                             /* Pop <string>                                                */
+
+			fwrite(s, 1, s_len, stdout);
+
+			/* It might be more efficient to not pop
+			** the converted string, since we do this
+			** to reference the gotten global tostring()
+			** by -1, and instead pushvalue(nargs + 1) */
+			lua_pop(L, 1);
 		}
 	}
-	/* Returning nothing on the
-	** Lua stack, so return 0 */
+	/* This function gets exposed as print(...),
+	** it must return 0 not EXIT_SUCCESS.
+	** It returns nothing (0), everything still
+	** on the stack is popped off and lost. */
 	return 0;
 }
 
 static int
-magnet_cache_script(lua_State * const L, const char * const fn, const time_t mtime)
+magnet_cache_script(lua_State *L, const char *fn, time_t mtime)
 {
-	/* Convert `fn` to a function -> onto the Lua stack
-	** Errors with non-0 (reason for the unconventional if) */
+	/* Compile it as a chunk, push it as a function onto the Lua stack. */
 	if (luaL_loadfile(L, fn))
 	{
 		fprintf(stderr, "%s\n", lua_tostring(L, -1));
-		lua_pop(L, 1); /*  Pop error message */
+		lua_pop(L, 1); /* remove the error-msg */
 		return EXIT_FAILURE;
 	}
 
-	lua_getfield   (L, LUA_GLOBALSINDEX,     "magnet"); /* Push _G.magnet                                                  */
-	lua_getfield   (L,               -1,      "cache"); /* Push _G.magnet.cache                                            */
-	lua_newtable   (L                                ); /* Push <table>                                                    */
-	lua_pushvalue  (L,               -4              ); /* Push loadfile() <function>                                      */
-	lua_setfield   (L,               -2, "scriptfunc"); /* <table>.scriptfunc = <function>, pop <function>                 */
-	lua_pushinteger(L,            mtime              ); /* Push `mtime`                                                    */
-	lua_setfield   (L,               -2,      "mtime"); /* <table>.mtime = <mtime>, pop <mtime>                            */
-	lua_pushinteger(L,                0              ); /* Push 0                                                          */
-	lua_setfield   (L,               -2,       "hits"); /* <table>.hits = 0, pops 0                                        */
-	lua_setfield   (L,               -2,           fn); /* _G.magnet.cache['`fn`'] = <table>, pops <table>                 */
-	lua_pop        (L,                2              ); /* Pop _G.magnet and _G.magnet.cache                               */
+	/* Push _G.magnet and _G.magnet.cache onto the Lua stack. */
+	lua_getfield(L, LUA_GLOBALSINDEX, "magnet");
+	lua_getfield(L, -1, "cache");
 
-	/* Only thing on the stack should be the script-function itself (from loadfile()) */
+	/* <table>.script = <func> */
+	lua_newtable(L); 
+	assert(lua_isfunction(L, -4));
+	lua_pushvalue(L, -4); 
+	lua_setfield(L, -2, "script"); /* Pops the function. */
+
+	/* <table>.mtime = <mtime> */
+	lua_pushinteger(L, mtime);
+	lua_setfield(L, -2, "mtime");  /* Pops the mtime integer. */
+
+	/* <table>.hits = <hits> */
+	lua_pushinteger(L, 0);
+	lua_setfield(L, -2, "hits");   /* Pops the hits integer. */
+
+	/* magnet.cache['<script>'] = <table> */
+	lua_setfield(L, -2, fn);       /* Pops the "anonymous" table. */
+
+	lua_pop(L, 2); /* Pop _G.magnet and _G.magnet.cache */
+
+	/* On the stack should be the function itself. */
 	assert(lua_isfunction(L, lua_gettop(L)));
-	return EXIT_SUCCESS;
+
+	return 0;
 }
 
 static int
-magnet_get_script(lua_State * const L, const char *fn)
+magnet_get_script(lua_State *L, const char *fn)
 {
 	struct stat st;
 	time_t mtime = 0;
@@ -138,7 +157,7 @@ magnet_get_script(lua_State * const L, const char *fn)
 int
 main(void)
 {
-	lua_State *L = luaL_newstate(); 
+	lua_State *L; 
 
 	L = luaL_newstate();
 	luaL_openlibs(L);
