@@ -9,7 +9,7 @@
 #include <lauxlib.h>
 
 static int
-magnet_print(lua_State *L)
+magnet_print(lua_State * const L)
 {
 	const size_t nargs = lua_gettop(L);
 	if (nargs)
@@ -22,32 +22,27 @@ magnet_print(lua_State *L)
 
 		for (i = 1; i <= nargs; i++)
 		{
-			lua_pushvalue(L, -1);                      /* Push tostring() */
-			lua_pushvalue(L,  i);                      /* Push argument   */
-			lua_call(L, 1, 1);                         /* tostring(1), take 1, return 1 */
-			s = (char *) lua_tolstring(L, -1, &s_len); /* Fetch result. */
+			lua_pushvalue(L, -1);                      /* Push tostring()                      */
+			lua_pushvalue(L,  i);                      /* Push argument                        */
+			lua_call(L, 1, 1);                         /* tostring(argument), take 1, return 1 */
+			s = (char *) lua_tolstring(L, -1, &s_len); /* Fetch result.                        */
 			
 			if (s == NULL)
 				return luaL_error(L, LUA_QL("tostring") " must return a string to " LUA_QL("print"));
 
 			fwrite(s, 1, s_len, stdout);
 
-			/* It might be more efficient to not pop
-			** the converted string, since we do this
-			** to reference the gotten global tostring()
-			** by -1, and instead pushvalue(nargs + 1) */
+			/* Pop <tostring(argument)> */
 			lua_pop(L, 1);
 		}
 	}
-	/* This function gets exposed as print(...),
-	** it must return 0 not EXIT_SUCCESS.
-	** It returns nothing (0), everything still
-	** on the stack is popped off and lost. */
+	/* Nothing returned on the Lua stack,
+	** so return 0; (exposed cfunction ) */
 	return 0;
 }
 
 static int
-magnet_cache_script(lua_State *L, const char *fn, time_t mtime)
+magnet_cache_script(lua_State * const L, const char * const fn, const time_t mtime)
 {
 	/* Compile it as a chunk, push it as a function onto the Lua stack. */
 	if (luaL_loadfile(L, fn))
@@ -87,7 +82,7 @@ magnet_cache_script(lua_State *L, const char *fn, time_t mtime)
 }
 
 static int
-magnet_get_script(lua_State *L, const char *fn)
+magnet_get_script(lua_State * const L, const char * const fn)
 {
 	struct stat st;
 	time_t mtime = 0;
@@ -157,9 +152,8 @@ magnet_get_script(lua_State *L, const char *fn)
 int
 main(void)
 {
-	lua_State *L; 
+	lua_State * const L = luaL_newstate(); 
 
-	L = luaL_newstate();
 	luaL_openlibs(L);
 
 	lua_newtable(L); /* magnet. */
